@@ -7,6 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.openapi import OpenApiResponse
 from .models import UserProfile, Role
 from .serializers import (
     UserSerializer,
@@ -19,6 +21,12 @@ from .serializers import (
 User = get_user_model()
 
 
+@extend_schema(
+    request=UserRegistrationSerializer,
+    responses={201: UserSerializer},
+    description="Register a new user and receive JWT tokens",
+    summary="User Registration",
+)
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -41,6 +49,12 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    request=LoginSerializer,
+    responses={200: UserSerializer},
+    description="Authenticate user and receive JWT tokens",
+    summary="User Login",
+)
 class CustomLoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
@@ -57,7 +71,8 @@ class CustomLoginView(TokenObtainPairView):
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
                 "message": "Login successful",
-            }
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -78,6 +93,16 @@ class LogoutView(APIView):
             )
 
 
+@extend_schema(
+    request=UserProfileSerializer,
+    responses={200: UserProfileSerializer},
+    description="Get or update user profile information",
+    summary="User Profile Management",
+)
+@extend_schema(
+    description="Get or update user profile information",
+    summary="User Profile Management",
+)
 class ProfileView(RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -87,6 +112,10 @@ class ProfileView(RetrieveUpdateAPIView):
         return profile
 
 
+@extend_schema(
+    description="Get or update current user details",
+    summary="User Details Management",
+)
 class UserDetailView(RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -95,6 +124,10 @@ class UserDetailView(RetrieveUpdateAPIView):
         return self.request.user
 
 
+@extend_schema(
+    description="List all users with optional role filtering",
+    summary="User Listing",
+)
 class UserListView(ListAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -108,12 +141,21 @@ class UserListView(ListAPIView):
         return queryset
 
 
+@extend_schema(
+    description="List all available roles",
+    summary="Role Listing",
+)
 class RoleListView(ListAPIView):
     serializer_class = RoleSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = Role.objects.all()
 
 
+@extend_schema(
+    responses={200: UserSerializer},
+    description="Get current authenticated user information",
+    summary="Current User",
+)
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
 def current_user(request):
