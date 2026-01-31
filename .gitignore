@@ -2,3 +2,16 @@
 *.log
 db.sqlite3
 schema.json
+# uv artifacts
+.venv/
+uv.lock
+# Test artifacts
+htmlcov/
+.coverage
+.pytest_cache/
+# Cache directories
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store

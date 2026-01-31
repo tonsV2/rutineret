@@ -1,21 +1,20 @@
-from rest_framework import status, permissions
+from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema
+from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveUpdateAPIView, ListAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
-from drf_spectacular.openapi import OpenApiResponse
-from .models import UserProfile, Role
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .models import Role, UserProfile
 from .serializers import (
-    UserSerializer,
-    UserRegistrationSerializer,
     LoginSerializer,
-    UserProfileSerializer,
     RoleSerializer,
+    UserProfileSerializer,
+    UserRegistrationSerializer,
+    UserSerializer,
 )
 
 User = get_user_model()
@@ -87,7 +86,7 @@ class LogoutView(APIView):
                 token.blacklist()
 
             return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
-        except Exception as e:
+        except Exception:
             return Response(
                 {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
             )
