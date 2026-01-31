@@ -15,3 +15,5 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
+api/db.sqlite3
+api/media/avatars/*
