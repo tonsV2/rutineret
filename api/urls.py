@@ -28,6 +28,8 @@ from drf_spectacular.views import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("users.urls")),
+    # Django Allauth URLs
+    path("accounts/", include("allauth.urls")),
     # OpenAPI/Swagger documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

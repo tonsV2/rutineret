@@ -53,6 +53,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
+    social_accounts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -66,11 +67,36 @@ class UserSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "is_verified",
             "profile",
+            "social_accounts",
             "password",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "is_verified", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "is_verified",
+            "created_at",
+            "updated_at",
+            "social_accounts",
+        ]
+
+    def get_social_accounts(self, obj):
+        """Get user's linked social accounts"""
+        try:
+            from allauth.socialaccount.models import SocialAccount
+
+            accounts = SocialAccount.objects.filter(user=obj)
+            return [
+                {
+                    "id": account.id,
+                    "provider": account.provider,
+                    "uid": account.uid,
+                    "provider_display_name": account.get_provider().name,
+                }
+                for account in accounts
+            ]
+        except:
+            return []
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -148,3 +174,15 @@ class LoginSerializer(serializers.Serializer):
             return attrs
         else:
             raise serializers.ValidationError("Must include email and password")
+
+
+class SocialAccountSerializer(serializers.ModelSerializer):
+    """Serializer for social accounts linked to a user"""
+
+    provider = serializers.CharField(read_only=True)
+    uid = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = None  # Will be set dynamically
+        fields = ["id", "provider", "uid"]
+        read_only_fields = ["id", "provider", "uid"]

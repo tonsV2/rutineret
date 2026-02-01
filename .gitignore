@@ -17,3 +17,4 @@ __pycache__/
 .DS_Store
 api/db.sqlite3
 api/media/avatars/*
+.env
