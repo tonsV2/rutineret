@@ -1,16 +1,15 @@
-from django.utils import timezone
 from django.db import transaction
+from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import (
     ListAPIView,
     RetrieveUpdateDestroyAPIView,
-    CreateAPIView,
 )
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
 
 from .models import Routine, Task, TaskCompletion
 from .serializers import (
@@ -187,16 +186,15 @@ class TaskReorderView(APIView):
             description="Date to check for due tasks (YYYY-MM-DD format, defaults to today)",
         )
     ],
-    responses={200: TaskSerializer(many=True)},
+    responses={200: TodayRoutineSerializer()},
     summary="Get Today's Routine",
-    description="Get all tasks due today for the authenticated user",
+    description="Get all tasks due today",
 )
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
 def today_routine(request):
     from datetime import date, datetime
 
-    # Get target date from query parameter or default to today
     date_param = request.query_params.get("date")
     if date_param:
         try:
@@ -209,29 +207,20 @@ def today_routine(request):
     else:
         target_date = date.today()
 
-    # Get all user's tasks and filter due ones
     all_tasks = (
         Task.objects.filter(routine__user=request.user)
         .select_related("routine")
         .order_by("order", "created_at")
     )
 
-    due_tasks = []
-    for task in all_tasks:
-        if task.is_due_today(target_date):
-            task.is_due_today = True
-            task.is_completed_today = task.is_completed_today(request.user, target_date)
-            due_tasks.append(task)
+    due_tasks = [task for task in all_tasks if task.is_due_today(target_date)]
 
-    serializer = TaskSerializer(due_tasks, many=True)
+    serializer = TodayRoutineSerializer({
+        "date": target_date,
+        "tasks": due_tasks
+    }, context={"request": request, "target_date": target_date})
 
-    return Response(
-        {
-            "date": target_date.isoformat(),
-            "tasks": serializer.data,
-        }
-    )
-
+    return Response(serializer.data)
 
 class TaskCompletionListView(ListAPIView):
     serializer_class = TaskCompletionListSerializer

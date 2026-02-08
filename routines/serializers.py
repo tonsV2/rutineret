@@ -194,9 +194,29 @@ class TodayRoutineSerializer(serializers.Serializer):
     """Serializer for today's routine response."""
 
     date = serializers.DateField(read_only=True)
-    routine = RoutineSerializer(read_only=True)
     tasks = TaskSerializer(many=True, read_only=True)
 
+    def validate_date(self, value):
+        """Validate date field to ensure it's not in the future."""
+        if value and value > date.today():
+            raise serializers.ValidationError("Date cannot be in the future")
+        return value
+
+    def to_representation(self, instance):
+        """Add computed fields to each task."""
+        ret = super().to_representation(instance)
+
+        target_date = self.context.get('target_date')
+        request = self.context.get('request')
+
+        if target_date and request:
+            for task_data, task_obj in zip(ret['tasks'], instance['tasks']):
+                task_data['is_due_today'] = True
+                task_data['is_completed_today'] = task_obj.is_completed_today(
+                    request.user, target_date
+                )
+
+        return ret
 
 class TaskCompletionListSerializer(serializers.ModelSerializer):
     """Detailed serializer for completion lists with pagination."""
