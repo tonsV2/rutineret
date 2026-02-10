@@ -135,6 +135,43 @@ class TaskCompleteView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        responses={204: None, 400: None, 404: None},
+        summary="Mark Task as Uncompleted",
+        description="Remove a completion for this task from today only",
+    )
+    def delete(self, request, task_id):
+        try:
+            task = Task.objects.get(id=task_id, routine__user=request.user)
+        except Task.DoesNotExist:
+            return Response(
+                {"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        from datetime import datetime, date
+
+        today = date.today()
+        start_of_day = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        end_of_day = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+
+        today_completion = TaskCompletion.objects.filter(
+            user=request.user,
+            task=task,
+            completed_at__gte=start_of_day,
+            completed_at__lte=end_of_day,
+        ).first()
+
+        if today_completion is None:
+            return Response(
+                {
+                    "error": "No completions found for today. You can only uncomplete tasks that were completed today."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        today_completion.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class TaskReorderView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -215,12 +252,13 @@ def today_routine(request):
 
     due_tasks = [task for task in all_tasks if task.is_due_today(target_date)]
 
-    serializer = TodayRoutineSerializer({
-        "date": target_date,
-        "tasks": due_tasks
-    }, context={"request": request, "target_date": target_date})
+    serializer = TodayRoutineSerializer(
+        {"date": target_date, "tasks": due_tasks},
+        context={"request": request, "target_date": target_date},
+    )
 
     return Response(serializer.data)
+
 
 class TaskCompletionListView(ListAPIView):
     serializer_class = TaskCompletionListSerializer

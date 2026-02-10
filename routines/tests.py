@@ -328,6 +328,156 @@ class RoutineAPITests(APITestCase):
         self.assertEqual(completion.user, self.user)
         self.assertEqual(completion.task, task)
 
+    def test_mark_task_uncompleted_single_completion(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # First complete the task
+        self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(TaskCompletion.objects.count(), 1)
+        self.assertTrue(task.is_completed_today(self.user))
+
+        # Then uncomplete it
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(TaskCompletion.objects.count(), 0)
+        self.assertFalse(task.is_completed_today(self.user))
+
+    def test_mark_task_uncompleted_multiple_completions(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # Complete the task multiple times today
+        self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+        self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+        self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+
+        self.assertEqual(TaskCompletion.objects.count(), 3)
+        self.assertTrue(task.is_completed_today(self.user))
+
+        # Uncomplete should remove one completion (any of today's)
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(TaskCompletion.objects.count(), 2)  # Should have 2 remaining
+        self.assertTrue(task.is_completed_today(self.user))  # Still completed today
+
+    def test_uncompleted_task_no_completions_today(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # Try to uncomplete without any completions
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = response.json()
+        self.assertIn("No completions found for today", data["error"])
+
+    def test_uncompleted_task_only_yesterday_completions(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # Create a completion from yesterday by creating it normally and then updating the time
+        completion = TaskCompletion.objects.create(user=self.user, task=task)
+        yesterday = timezone.now() - timedelta(days=1)
+        completion.completed_at = yesterday
+        completion.save()
+
+        # Should not be able to uncomplete yesterday's completion
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = response.json()
+        self.assertIn("No completions found for today", data["error"])
+
+        # Yesterday's completion should still exist
+        self.assertEqual(TaskCompletion.objects.count(), 1)
+
+    def test_uncompleted_task_mixed_completions(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # Create completions from yesterday and today
+        yesterday_completion = TaskCompletion.objects.create(user=self.user, task=task)
+        yesterday = timezone.now() - timedelta(days=1)
+        yesterday_completion.completed_at = yesterday
+        yesterday_completion.save()
+
+        # Complete today
+        self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+
+        self.assertEqual(TaskCompletion.objects.count(), 2)
+
+        # Uncomplete should only remove today's completion
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Should still have yesterday's completion
+        self.assertEqual(TaskCompletion.objects.count(), 1)
+        self.assertFalse(task.is_completed_today(self.user))
+
+    def test_uncompleted_task_not_found(self):
+        # Try to uncomplete a non-existent task
+        response = self.client.delete("/api/routines/tasks/999/complete/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        data = response.json()
+        self.assertEqual(data["error"], "Task not found")
+
+    def test_uncompleted_task_unauthorized(self):
+        # Create task for different user
+        other_user = User.objects.create_user(
+            username="otheruser", email="other@example.com", password="otherpass123"
+        )
+        other_routine = Routine.objects.create(user=other_user, name="Other Routine")
+        other_task = Task.objects.create(
+            routine=other_routine, title="Other Exercise", recurrence_type="daily"
+        )
+
+        # Try to uncomplete other user's task
+        response = self.client.delete(f"/api/routines/tasks/{other_task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        data = response.json()
+        self.assertEqual(data["error"], "Task not found")
+
+    def test_complete_and_uncomplete_workflow(self):
+        routine = Routine.objects.create(user=self.user, name="Morning Routine")
+        task = Task.objects.create(
+            routine=routine, title="Exercise", recurrence_type="daily"
+        )
+
+        # Initial state
+        self.assertFalse(task.is_completed_today(self.user))
+        self.assertEqual(TaskCompletion.objects.count(), 0)
+
+        # Complete task
+        response = self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(task.is_completed_today(self.user))
+        self.assertEqual(TaskCompletion.objects.count(), 1)
+
+        # Uncomplete task
+        response = self.client.delete(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(task.is_completed_today(self.user))
+        self.assertEqual(TaskCompletion.objects.count(), 0)
+
+        # Complete again
+        response = self.client.post(f"/api/routines/tasks/{task.id}/complete/")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(task.is_completed_today(self.user))
+        self.assertEqual(TaskCompletion.objects.count(), 1)
+
     def test_today_routine_endpoint(self):
         routine = Routine.objects.create(user=self.user, name="Morning Routine")
 

@@ -1,7 +1,9 @@
-from django.utils import timezone
-from django.db import models
-from rest_framework import serializers
 from datetime import date
+
+from django.db import models
+from django.utils import timezone
+from rest_framework import serializers
+
 from .models import Routine, Task, TaskCompletion
 
 
@@ -38,7 +40,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "routine", "created_at", "updated_at"]
 
     def get_completions_count(self, obj):
         """Get total number of completions for this task."""
@@ -104,10 +106,10 @@ class TaskSerializer(serializers.ModelSerializer):
         if "order" not in validated_data or validated_data["order"] == 0:
             # Get the highest order for this routine and increment
             max_order = (
-                Task.objects.filter(routine=validated_data["routine"]).aggregate(
-                    models.Max("order")
-                )["order__max"]
-                or 0
+                    Task.objects.filter(routine=validated_data["routine"]).aggregate(
+                        models.Max("order")
+                    )["order__max"]
+                    or 0
             )
             validated_data["order"] = max_order + 1
 
@@ -206,17 +208,18 @@ class TodayRoutineSerializer(serializers.Serializer):
         """Add computed fields to each task."""
         ret = super().to_representation(instance)
 
-        target_date = self.context.get('target_date')
-        request = self.context.get('request')
+        target_date = self.context.get("target_date")
+        request = self.context.get("request")
 
         if target_date and request:
-            for task_data, task_obj in zip(ret['tasks'], instance['tasks']):
-                task_data['is_due_today'] = True
-                task_data['is_completed_today'] = task_obj.is_completed_today(
+            for task_data, task_obj in zip(ret["tasks"], instance["tasks"]):
+                task_data["is_due_today"] = True
+                task_data["is_completed_today"] = task_obj.is_completed_today(
                     request.user, target_date
                 )
 
         return ret
+
 
 class TaskCompletionListSerializer(serializers.ModelSerializer):
     """Detailed serializer for completion lists with pagination."""
