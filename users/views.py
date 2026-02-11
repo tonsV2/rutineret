@@ -194,7 +194,7 @@ def change_password(request):
         200: {"type": "object", "properties": {"authorization_url": {"type": "string"}}}
     },
 )
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 @permission_classes([permissions.AllowAny])
 def google_oauth_initiate(request):
     """Initiate Google OAuth flow"""
