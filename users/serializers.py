@@ -26,6 +26,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "avatar",
             "location",
             "website",
+            "timezone",
             "roles",
             "role_ids",
             "is_public",

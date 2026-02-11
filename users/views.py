@@ -369,3 +369,139 @@ def unlink_social_account(request, account_id):
             {"error": f"Failed to unlink account: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+@extend_schema(
+    description="Handle Google OAuth for mobile apps with ID token",
+    summary="Google OAuth Mobile",
+    responses={200: UserSerializer},
+)
+@api_view(["POST"])
+@permission_classes([permissions.AllowAny])
+def google_oauth_mobile(request):
+    """Handle Google OAuth callback for mobile apps with ID token"""
+    from rest_framework_simplejwt.tokens import RefreshToken
+    from .models import User
+    from .serializers import UserSerializer
+
+    try:
+        logger = logging.getLogger(__name__)
+
+        # Get ID token from request
+        id_token = request.data.get("id_token")
+
+        if not id_token:
+            return Response(
+                {"error": "ID token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        logger.info(f"Received ID token: {id_token[:20]}...")
+
+        # Validate ID token with Google's Tokeninfo API
+        try:
+            # Use Google's Tokeninfo endpoint to validate ID token
+            tokeninfo_url = (
+                f"https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={id_token}"
+            )
+            response = requests.get(tokeninfo_url)
+
+            if response.status_code != 200:
+                logger.error(f"Token validation failed: HTTP {response.status_code}")
+                return Response(
+                    {"error": f"Invalid ID token: {response.status_code}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            token_data = response.json()
+
+            if "error" in token_data:
+                logger.error(f"Token validation error: {token_data['error']}")
+                return Response(
+                    {"error": f"Invalid ID token: {token_data['error']}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Extract user information from validated token
+            user_info = {
+                "email": token_data["email"],
+                "given_name": token_data.get("given_name", ""),
+                "family_name": token_data.get("family_name", ""),
+            }
+
+        except requests.RequestException as e:
+            logger.error(f"Token validation request failed: {str(e)}")
+            return Response(
+                {"error": f"Token validation failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except Exception as verification_error:
+            logger.error(f"ID token validation failed: {str(verification_error)}")
+            return Response(
+                {"error": f"Invalid ID token: {str(verification_error)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+            # Extract user information from verified token
+            user_info = {
+                "email": id_info["email"],
+                "given_name": id_info.get("given_name", ""),
+                "family_name": id_info.get("family_name", ""),
+            }
+
+        except Exception as verification_error:
+            logger.error(f"ID token validation failed: {str(verification_error)}")
+            return Response(
+                {"error": f"Invalid ID token: {str(verification_error)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get or create user
+        email = user_info.get("email")
+        first_name = user_info.get("given_name", "")
+        last_name = user_info.get("family_name", "")
+
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                "username": email.split("@")[0],
+                "first_name": first_name,
+                "last_name": last_name,
+                "is_verified": True,
+            },
+        )
+
+        # Create social account link if it's a new user
+        if created:
+            from allauth.socialaccount.models import SocialAccount
+
+            SocialAccount.objects.create(
+                user=user,
+                provider="google",
+                uid=token_data.get(
+                    "sub", ""
+                ),  # Google's unique user ID from token data
+                extra_data=user_info,
+            )
+            logger.info(f"Created new user and social account for {email}")
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+
+        logger.info(f"Google sign-in successful for {email}")
+
+        return Response(
+            {
+                "user": UserSerializer(user).data,
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "message": "Google sign-in successful",
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Mobile OAuth failed: {str(e)}")
+        return Response(
+            {"error": f"OAuth callback failed: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

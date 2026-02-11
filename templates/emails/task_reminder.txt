@@ -1,0 +1,24 @@
+Task Reminder - {{ task.title }}
+
+Hi {{ user.first_name|default:user.email }},
+
+This is a friendly reminder that you have a task due soon:
+
+TASK: {{ task.title }}
+{% if task.description %}
+Description: {{ task.description }}
+{% endif %}
+Due Time: {{ due_time }}
+Routine: {{ routine_name }}
+Recurrence: {{ recurrence_type }}
+
+ALARM DETAILS:
+This reminder was sent {{ alarm_minutes_before }} minutes before your task is due.
+
+Take a moment to complete this task and stay on track with your routine!
+
+Best regards,
+The Rutineret Team
+
+---
+This is an automated reminder. You can disable alarms in your task settings.

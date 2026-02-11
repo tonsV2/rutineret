@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import QueryDict
 
+from users.serializers import UserSerializer
+
 User = get_user_model()
 
 
@@ -35,10 +37,7 @@ def google_oauth_callback(request):
 
         if not code:
             logger.error("No authorization code found in request!")
-            return Response(
-                {"error": "Authorization code is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "Authorization code is required"},status=status.HTTP_400_BAD_REQUEST)
 
         # Use settings safely
         client_id = settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"]
@@ -107,7 +106,7 @@ def google_oauth_callback(request):
 
         return Response(
             {
-                "user": user,  # Using user object directly
+                "user": UserSerializer(user).data,
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
                 "message": "Google sign-in successful",

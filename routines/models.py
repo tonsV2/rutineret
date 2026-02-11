@@ -1,7 +1,8 @@
 import calendar
 from datetime import date, datetime
-from django.db import models
+
 from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -37,6 +38,11 @@ class Task(models.Model):
     # Recurrence fields
     recurrence_type = models.CharField(max_length=10, choices=RECURRENCE_TYPES)
     recurrence_metadata = models.JSONField(default=dict)
+
+    # Alarm fields
+    due_time = models.TimeField(null=True, blank=True, help_text="Time of day when task is due")
+    alarm_enabled = models.BooleanField(default=False, help_text="Whether to send alarm reminders")
+    alarm_minutes_before = models.PositiveIntegerField(default=15, help_text="Minutes before due time to send alarm")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

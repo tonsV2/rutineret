@@ -33,6 +33,9 @@ class UserProfile(models.Model):
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     location = models.CharField(max_length=100, blank=True)
     website = models.URLField(blank=True)
+    timezone = models.CharField(
+        max_length=50, default="UTC", help_text="User's timezone for alarm scheduling"
+    )
     roles = models.ManyToManyField(Role, blank=True, related_name="users")
     is_public = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -20,17 +20,10 @@ urlpatterns = [
     path("change-password/", views.change_password, name="change_password"),
     # Social Authentication
     path("google/", views.google_oauth_initiate, name="google_oauth_initiate"),
-    path(
-        "google/callback/",
-        views.google_oauth_callback_view,
-        name="google_oauth_callback",
-    ),
+    path("google/callback/",views.google_oauth_callback_view,name="google_oauth_callback"),
+    path("google/mobile/", views.google_oauth_mobile, name="google_oauth_mobile"),
     path("social-accounts/", views.social_accounts, name="social_accounts"),
-    path(
-        "social-accounts/<int:account_id>/unlink/",
-        views.unlink_social_account,
-        name="unlink_social_account",
-    ),
+    path("social-accounts/<int:account_id>/unlink/",views.unlink_social_account,name="unlink_social_account"),
     # Roles
     path("roles/", views.RoleListView.as_view(), name="role_list"),
 ]

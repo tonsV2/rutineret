@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Reminder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .task-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .task-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .task-details {
+            color: #666;
+            margin: 5px 0;
+        }
+        .routine-name {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #495057;
+        }
+        .alarm-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="logo">📋 Rutineret</h1>
+        <p>Task Reminder</p>
+    </div>
+    
+    <div class="content">
+        <p>Hi {{ user.first_name|default:user.email }},</p>
+        
+        <p>This is a friendly reminder that you have a task due soon:</p>
+        
+        <div class="task-info">
+            <div class="task-title">{{ task.title }}</div>
+            
+            {% if task.description %}
+            <div class="task-details">
+                <strong>Description:</strong> {{ task.description }}
+            </div>
+            {% endif %}
+            
+            <div class="task-details">
+                <strong>Due Time:</strong> {{ due_time }}
+            </div>
+            
+            <div class="task-details">
+                <strong>Routine:</strong> 
+                <span class="routine-name">{{ routine_name }}</span>
+            </div>
+            
+            <div class="task-details">
+                <strong>Recurrence:</strong> {{ recurrence_type }}
+            </div>
+        </div>
+        
+        <div class="alarm-info">
+            <strong>⏰ Alarm Details:</strong><br>
+            This reminder was sent {{ alarm_minutes_before }} minutes before your task is due.
+        </div>
+        
+        <p>Take a moment to complete this task and stay on track with your routine!</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>The Rutineret Team</p>
+            <p><small>This is an automated reminder. You can disable alarms in your task settings.</small></p>
+        </div>
+    </div>
+</body>
+</html>

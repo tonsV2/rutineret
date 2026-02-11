@@ -34,6 +34,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "order",
             "recurrence_type",
             "recurrence_metadata",
+            "due_time",
+            "alarm_enabled",
+            "alarm_minutes_before",
             "is_due_today",
             "is_completed_today",
             "completions_count",
@@ -106,10 +109,10 @@ class TaskSerializer(serializers.ModelSerializer):
         if "order" not in validated_data or validated_data["order"] == 0:
             # Get the highest order for this routine and increment
             max_order = (
-                    Task.objects.filter(routine=validated_data["routine"]).aggregate(
-                        models.Max("order")
-                    )["order__max"]
-                    or 0
+                Task.objects.filter(routine=validated_data["routine"]).aggregate(
+                    models.Max("order")
+                )["order__max"]
+                or 0
             )
             validated_data["order"] = max_order + 1
 
