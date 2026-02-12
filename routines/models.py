@@ -1,8 +1,10 @@
 import calendar
 from datetime import date, datetime
 
+import pytz
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -40,9 +42,15 @@ class Task(models.Model):
     recurrence_metadata = models.JSONField(default=dict)
 
     # Alarm fields
-    due_time = models.TimeField(null=True, blank=True, help_text="Time of day when task is due")
-    alarm_enabled = models.BooleanField(default=False, help_text="Whether to send alarm reminders")
-    alarm_minutes_before = models.PositiveIntegerField(default=15, help_text="Minutes before due time to send alarm")
+    due_time = models.TimeField(
+        null=True, blank=True, help_text="Time of day when task is due"
+    )
+    alarm_enabled = models.BooleanField(
+        default=False, help_text="Whether to send alarm reminders"
+    )
+    alarm_minutes_before = models.PositiveIntegerField(
+        default=15, help_text="Minutes before due time to send alarm"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -92,22 +100,28 @@ class Task(models.Model):
         return False
 
     def is_completed_today(self, user: User, target_date: date = None) -> bool:
-        """Check if this task has been completed by the user on the given date."""
+        """Check if this task has been completed by the user on the given date.
+
+        Uses the user's profile timezone to determine the date range.
+        """
         if target_date is None:
             target_date = date.today()
 
-        # Convert date to datetime range for checking using timezone-aware datetimes
-        from django.utils import timezone
+        try:
+            user_tz = pytz.timezone(user.profile.timezone)
+        except (AttributeError, pytz.UnknownTimeZoneError):
+            user_tz = pytz.UTC
 
-        start_of_day = timezone.make_aware(
-            datetime.combine(target_date, datetime.min.time())
-        )
-        end_of_day = timezone.make_aware(
-            datetime.combine(target_date, datetime.max.time())
-        )
+        start_of_day_local = datetime.combine(target_date, datetime.min.time())
+        end_of_day_local = datetime.combine(target_date, datetime.max.time())
+
+        start_of_day_utc = user_tz.localize(start_of_day_local).astimezone(pytz.UTC)
+        end_of_day_utc = user_tz.localize(end_of_day_local).astimezone(pytz.UTC)
 
         return self.completions.filter(
-            user=user, completed_at__gte=start_of_day, completed_at__lte=end_of_day
+            user=user,
+            completed_at__gte=start_of_day_utc,
+            completed_at__lte=end_of_day_utc,
         ).exists()
 
     @classmethod
@@ -125,7 +139,7 @@ class TaskCompletion(models.Model):
         User, on_delete=models.CASCADE, related_name="task_completions"
     )
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="completions")
-    completed_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ["-completed_at"]

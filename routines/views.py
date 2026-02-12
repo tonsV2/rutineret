@@ -1,7 +1,9 @@
+from datetime import date, datetime
+
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import (
@@ -108,7 +110,7 @@ class TaskCompleteView(APIView):
 
     @extend_schema(
         request=TaskCompleteSerializer,
-        responses={201: TaskCompletionSerializer},
+        responses={201: OpenApiResponse(description="Task marked as complete")},
         summary="Mark Task as Complete",
         description="Mark a task as completed for the current date/time",
     )
@@ -126,17 +128,16 @@ class TaskCompleteView(APIView):
                 "completion_time", timezone.now()
             )
 
-            completion = TaskCompletion.objects.create(
+            TaskCompletion.objects.create(
                 user=request.user, task=task, completed_at=completion_time
             )
 
-            response_serializer = TaskCompletionSerializer(completion)
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        responses={204: None, 400: None, 404: None},
+        responses={204: OpenApiResponse(description="Task marked as incomplete")},
         summary="Mark Task as Uncompleted",
         description="Remove a completion for this task from today only",
     )
@@ -148,17 +149,28 @@ class TaskCompleteView(APIView):
                 {"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        from datetime import datetime, date
+        import pytz
 
-        today = date.today()
-        start_of_day = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-        end_of_day = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+        try:
+            user_tz = pytz.timezone(request.user.profile.timezone)
+        except (AttributeError, pytz.UnknownTimeZoneError):
+            user_tz = pytz.UTC
+
+        now_utc = timezone.now()
+        now_user_tz = now_utc.astimezone(user_tz)
+        target_date = now_user_tz.date()
+
+        start_of_day_local = datetime.combine(target_date, datetime.min.time())
+        end_of_day_local = datetime.combine(target_date, datetime.max.time())
+
+        start_of_day_utc = user_tz.localize(start_of_day_local).astimezone(pytz.UTC)
+        end_of_day_utc = user_tz.localize(end_of_day_local).astimezone(pytz.UTC)
 
         today_completion = TaskCompletion.objects.filter(
             user=request.user,
             task=task,
-            completed_at__gte=start_of_day,
-            completed_at__lte=end_of_day,
+            completed_at__gte=start_of_day_utc,
+            completed_at__lte=end_of_day_utc,
         ).first()
 
         if today_completion is None:
