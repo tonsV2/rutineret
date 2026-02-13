@@ -20,6 +20,7 @@ dependencies = [
     "django-celery-beat==2.8.1",
     "django-celery-results==2.6.0",
     "pytz==2024.2",
+    "psycopg2-binary==2.9.11",
 ]
 
 [project.optional-dependencies]
