@@ -3,8 +3,7 @@ name = "rutineret"
 version = "0.1.0"
 description = "Django REST API with JWT authentication and role-based access control"
 authors = [{name = "Rutineret Team"}]
-readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "Django==5.2.10",
     "djangorestframework==3.16.1",
@@ -21,6 +20,8 @@ dependencies = [
     "django-celery-results==2.6.0",
     "pytz==2024.2",
     "psycopg2-binary==2.9.11",
+    "gunicorn>=24.0.0",
+    "uvicorn[standard]>=0.34.0",
 ]
 
 [project.optional-dependencies]

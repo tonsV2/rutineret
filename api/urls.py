@@ -19,16 +19,23 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
 
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("users.urls")),
     path("api/routines/", include("routines.urls")),
+    path("api/health/", health_check, name="health_check"),
     # Django Allauth URLs
     path("accounts/", include("allauth.urls")),
     # OpenAPI/Swagger documentation

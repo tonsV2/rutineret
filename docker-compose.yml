@@ -1,4 +1,28 @@
 services:
+  app:
+    build: .
+    command: gunicorn api.asgi:application --worker-class uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   redis:
     image: redis:7-alpine
     ports:
@@ -13,9 +37,7 @@ services:
       retries: 5
 
   celery-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.celery
+    build: .
     command: celery -A api worker --loglevel=info
     working_dir: /app
     volumes:
@@ -33,9 +55,7 @@ services:
       POSTGRES_HOST: ${POSTGRES_HOST}
 
   celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile.celery
+    build: .
     command: celery -A api beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     working_dir: /app
     volumes:
