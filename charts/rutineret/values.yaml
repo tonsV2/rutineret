@@ -212,6 +212,10 @@ valkeyConnection:
   port: 6379
   password: changeme
 
+googleOAuth:
+  clientId: ""
+  clientSecret: ""
+
 postgresql:
   enabled: true
   managed:

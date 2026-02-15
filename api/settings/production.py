@@ -14,12 +14,6 @@ DATABASES = {
     }
 }
 
-ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.environ.get("ALLOWED_HOSTS", "").split(",")
-    if h.strip()
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
 ]
-
-# Safe default so things don't break if ALLOWED_HOSTS is empty
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]

@@ -5,9 +5,6 @@ metadata:
 build:
   artifacts:
     - image: tons/rutineret
-      context: .
-      docker:
-        dockerfile: Dockerfile
 deploy:
   statusCheckDeadlineSeconds: 300
   tolerateFailuresUntilDeadline: true
@@ -17,3 +14,7 @@ deploy:
         chartPath: charts/rutineret
         namespace: rutineret
         createNamespace: true
+        setValueTemplates:
+          googleOAuth:
+            clientId: "{{.GOOGLE_OAUTH2_CLIENT_ID}}"
+            clientSecret: "{{.GOOGLE_OAUTH2_CLIENT_SECRET}}"

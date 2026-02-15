@@ -86,18 +86,6 @@ spec:
                 configMapKeyRef:
                   name: {{ include "rutineret.fullname" . }}
                   key: POSTGRES_DB
-            - name: REDIS_URL
-              value: "redis://default:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)/0"
-            - name: REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: REDIS_HOST
-            - name: REDIS_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: REDIS_PORT
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -197,6 +185,16 @@ spec:
                   name: {{ include "rutineret.fullname" . }}
                   key: REDIS_PASSWORD
                   {{- end }}
+            - name: GOOGLE_OAUTH2_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rutineret.fullname" . }}
+                  key: GOOGLE_OAUTH2_CLIENT_ID
+            - name: GOOGLE_OAUTH2_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rutineret.fullname" . }}
+                  key: GOOGLE_OAUTH2_CLIENT_SECRET
           envFrom:
             - configMapRef:
                 name: {{ include "rutineret.fullname" . }}
