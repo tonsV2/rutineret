@@ -1,0 +1,17 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: rutineret
+build:
+  artifacts:
+    - image: tons/rutineret
+      context: .
+      docker:
+        dockerfile: Dockerfile
+deploy:
+  helm:
+    releases:
+      - name: rutineret
+        chartPath: charts/rutineret
+        namespace: rutineret
+        createNamespace: true

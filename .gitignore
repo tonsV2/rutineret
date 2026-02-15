@@ -18,3 +18,4 @@ __pycache__/
 api/db.sqlite3
 api/media/avatars/*
 .env
+charts/rutineret/charts/*.tgz

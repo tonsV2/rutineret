@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rutineret.fullname" . }}
+  labels:
+    {{- include "rutineret.labels" . | nindent 4 }}
+data:
+  {{- if .Values.postgresql.managed.enabled }}
+  POSTGRES_HOST: {{ include "rutineret.fullname" . }}-postgres-rw
+  {{- else }}
+  POSTGRES_HOST: {{ .Values.postgresql.external.host | quote }}
+  {{- end }}
+  POSTGRES_PORT: {{ .Values.postgresql.external.port | quote }}
+  POSTGRES_DB: {{ .Values.postgresql.external.database | quote }}
+  REDIS_HOST: {{ .Values.valkeyConnection.host | quote }}
+  REDIS_PORT: {{ .Values.valkeyConnection.port | quote }}
