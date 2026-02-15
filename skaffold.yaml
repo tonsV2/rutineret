@@ -9,6 +9,8 @@ build:
       docker:
         dockerfile: Dockerfile
 deploy:
+  statusCheckDeadlineSeconds: 300
+  tolerateFailuresUntilDeadline: true
   helm:
     releases:
       - name: rutineret
