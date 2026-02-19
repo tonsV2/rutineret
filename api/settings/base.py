@@ -26,9 +26,7 @@ SECRET_KEY = "django-insecure-%=1u+%=gxvv7hsdsrna7nkfn+t3x3bnp5l+i79rmr$bako%k_8
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.environ.get("ALLOWED_HOSTS", "").split(",")
-    if h.strip()
+    h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()
 ]
 
 # Safe default so things don't break if ALLOWED_HOSTS is empty
@@ -183,6 +181,7 @@ LOGOUT_REDIRECT_URL = "/api/auth/logout/"
 
 # Frontend OAuth Configuration
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 OAUTH_CALLBACK_ROUTE = "/auth/google/callback"
 
 # Django REST Framework

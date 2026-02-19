@@ -14,3 +14,5 @@ data:
   POSTGRES_DB: {{ .Values.postgresql.external.database | quote }}
   REDIS_HOST: {{ .Values.valkeyConnection.host | quote }}
   REDIS_PORT: {{ .Values.valkeyConnection.port | quote }}
+  FRONTEND_URL: {{ .Values.frontendUrl | quote }}
+  API_URL: {{ .Values.apiUrl | quote }}

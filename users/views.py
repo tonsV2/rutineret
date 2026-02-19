@@ -204,11 +204,12 @@ def google_oauth_initiate(request):
     from django.conf import settings
     from urllib.parse import urlencode
 
+    redirect_uri = f"{settings.API_URL}/api/auth/google/callback/"
     params = {
         "response_type": "code",
         "client_id": settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"],
         "scope": " ".join(settings.SOCIALACCOUNT_PROVIDERS["google"]["SCOPE"]),
-        "redirect_uri": "http://localhost:8000/api/auth/google/callback/",
+        "redirect_uri": redirect_uri,
         "state": request.GET.get("state", ""),  # CSRF protection
         "access_type": "online",
     }
@@ -244,7 +245,7 @@ def google_oauth_callback_view(request):
         # Use settings safely
         client_id = settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"]
         client_secret = settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["secret"]
-        redirect_uri = request.build_absolute_uri("/api/auth/google/callback/")
+        redirect_uri = f"{settings.API_URL}/api/auth/google/callback/"
 
         # Exchange authorization code for access token
         token_url = "https://oauth2.googleapis.com/token"

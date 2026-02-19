@@ -37,12 +37,15 @@ def google_oauth_callback(request):
 
         if not code:
             logger.error("No authorization code found in request!")
-            return Response({"error": "Authorization code is required"},status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Authorization code is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Use settings safely
         client_id = settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"]
         client_secret = settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["secret"]
-        redirect_uri = "http://localhost:8000/api/auth/google/callback/"
+        redirect_uri = f"{settings.API_URL}/api/auth/google/callback/"
 
         # Exchange authorization code for access token
         token_url = "https://oauth2.googleapis.com/token"
