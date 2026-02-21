@@ -1,7 +1,5 @@
 apiVersion: skaffold/v4beta13
 kind: Config
-metadata:
-  name: rutineret
 build:
   artifacts:
     - image: tons/rutineret
@@ -18,12 +16,12 @@ deploy:
           googleOAuth:
             clientId: "{{.GOOGLE_OAUTH2_CLIENT_ID}}"
             clientSecret: "{{.GOOGLE_OAUTH2_CLIENT_SECRET}}"
-          frontendUrl: https://rutineret.c.th.fitfit.dk
-          apiUrl: https://api.rutineret.c.th.fitfit.dk
+          frontendUrl: "{{.FRONTEND_URL}}"
+          apiUrl: "{{.API_URL}}"
           ingress:
             enabled: true
             hosts:
-              - host: api.rutineret.c.th.fitfit.dk
+              - host: "{{.HOST}}"
                 paths:
                   - path: /
                     pathType: ImplementationSpecific
