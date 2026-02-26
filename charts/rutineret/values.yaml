@@ -51,6 +51,11 @@ securityContext:
       - NET_BIND_SERVICE
     drop:
       - ALL
+  seccompProfile:
+    type: RuntimeDefault
+  seLinuxOptions:
+    level: "s0:c123,c456"
+  # Note: no-new-privileges is set via container's security-opt annotation below
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
@@ -172,6 +177,10 @@ api:
     timeoutSeconds: 3
     failureThreshold: 3
   podAnnotations: {}
+  volumeMounts: []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
 
 worker:
   replicaCount: 1
@@ -188,6 +197,10 @@ worker:
     #   cpu: 250m
     #   memory: 256Mi
   podAnnotations: {}
+  volumeMounts: []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
 
 beat:
   replicaCount: 1
@@ -220,7 +233,6 @@ googleOAuth:
   clientSecret: ""
 
 postgresql:
-  enabled: true
   managed:
     enabled: true
     instances: 1
@@ -238,7 +250,6 @@ postgresql:
     password: password
 
 valkey:
-  enabled: true
   auth:
     enabled: true
     aclUsers:

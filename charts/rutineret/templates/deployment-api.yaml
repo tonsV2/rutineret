@@ -15,10 +15,12 @@ spec:
       component: api
   template:
     metadata:
-      {{- with .Values.api.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- if .Values.api.podAnnotations }}
+        {{- toYaml .Values.api.podAnnotations | nindent 8 }}
+        {{- end }}
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        apparmor.security.beta.kubernetes.io/container: runtime-default
       labels:
         {{- include "rutineret.labels" . | nindent 8 }}
         component: api
@@ -71,25 +73,42 @@ spec:
                   name: {{ include "rutineret.fullname" . }}
                   key: POSTGRES_PASSWORD
                   {{- end }}
-            - name: POSTGRES_HOST
+            - name: REDIS_URL
+              value: "redis://default:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)/0"
+            - name: REDIS_PASSWORD
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
+                  {{- if .Values.valkeyConnection.existingSecret }}
+                  name: {{ .Values.valkeyConnection.existingSecret }}
+                  key: {{ .Values.valkeyConnection.secretKeys.password }}
+                  {{- else }}
                   name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_HOST
-            - name: POSTGRES_PORT
+                  key: REDIS_PASSWORD
+                  {{- end }}
+            - name: GOOGLE_OAUTH2_CLIENT_ID
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_PORT
-            - name: POSTGRES_DB
+                  key: GOOGLE_OAUTH2_CLIENT_ID
+            - name: GOOGLE_OAUTH2_CLIENT_SECRET
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_DB
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+                  key: GOOGLE_OAUTH2_CLIENT_SECRET
+          envFrom:
+            - configMapRef:
+                name: {{ include "rutineret.fullname" . }}
+          volumeMounts:
+            - name: tmpfs
+              mountPath: /tmp
+            {{- with .Values.api.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmpfs
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
       containers:
         - name: {{ .Chart.Name }}-api
           {{- with .Values.securityContext }}
@@ -198,6 +217,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "rutineret.fullname" . }}
+          volumeMounts:
+            - name: tmpfs
+              mountPath: /tmp
+            {{- with .Values.api.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

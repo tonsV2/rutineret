@@ -10,12 +10,13 @@ deploy:
     releases:
       - name: rutineret
         chartPath: charts/rutineret
-        namespace: rutineret
+        namespace: "rutineret-{{ .CLASSIFICATION }}"
         createNamespace: true
+        upgradeOnChange: true
+        useHelmSecrets: true
+        valuesFiles:
+          - charts/rutineret/data/secrets/{{ .CLASSIFICATION }}.yaml
         setValueTemplates:
-          googleOAuth:
-            clientId: "{{.GOOGLE_OAUTH2_CLIENT_ID}}"
-            clientSecret: "{{.GOOGLE_OAUTH2_CLIENT_SECRET}}"
           frontendUrl: "{{.FRONTEND_URL}}"
           apiUrl: "{{.API_URL}}"
           ingress:

@@ -13,10 +13,12 @@ spec:
       component: worker
   template:
     metadata:
-      {{- with .Values.worker.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- if .Values.worker.podAnnotations }}
+        {{- toYaml .Values.worker.podAnnotations | nindent 8 }}
+        {{- end }}
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        apparmor.security.beta.kubernetes.io/container: runtime-default
       labels:
         {{- include "rutineret.labels" . | nindent 8 }}
         component: worker
@@ -74,33 +76,8 @@ spec:
                   name: {{ include "rutineret.fullname" . }}
                   key: POSTGRES_PASSWORD
                   {{- end }}
-            - name: POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_HOST
-            - name: POSTGRES_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_PORT
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: POSTGRES_DB
             - name: REDIS_URL
               value: "redis://default:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)/0"
-            - name: REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: REDIS_HOST
-            - name: REDIS_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "rutineret.fullname" . }}
-                  key: REDIS_PORT
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -114,6 +91,17 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "rutineret.fullname" . }}
+          volumeMounts:
+            - name: tmpfs
+              mountPath: /tmp
+          {{- with .Values.worker.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: tmpfs
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

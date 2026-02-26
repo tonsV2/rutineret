@@ -1,0 +1,107 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  IMAGE_NAME: tons/rutineret
+  SKAFFOLD_CHART: charts/rutineret
+
+  HOST_PROD: api.rutineret.c.th.fitfit.dk
+  HOST_DEV: dev.api.rutineret.c.th.fitfit.dk
+
+  FRONTEND_URL_PROD: https://rutineret.c.th.fitfit.dk
+  FRONTEND_URL_DEV: https://dev.rutineret.c.th.fitfit.dk
+
+  API_URL_PROD: https://api.rutineret.c.th.fitfit.dk
+  API_URL_DEV: https://dev.api.rutineret.c.th.fitfit.dk
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: |
+          if ! command -v docker compose &> /dev/null; then
+            curl -SL https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+            chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+
+      - name: Install helm/helmfile
+        uses: alexellis/arkade-get@master
+        with:
+          helm: v3.12.3
+          helmfile: v1.2.3
+
+      - name: Install helm secrets plugin
+        run: helm plugin install https://github.com/jkroepke/helm-secrets
+
+      - name: Install SOPS
+        uses: nhedger/setup-sops@v2
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Set environment variables for tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "CLASSIFICATION=prod" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          echo "HOST=${{ env.HOST_PROD }}" >> $GITHUB_ENV
+          echo "FRONTEND_URL=${{ env.FRONTEND_URL_PROD }}" >> $GITHUB_ENV
+          echo "API_URL=${{ env.API_URL_PROD }}" >> $GITHUB_ENV
+
+      - name: Set environment variables for master
+        if: github.ref == 'refs/heads/master'
+        run: |
+          echo "CLASSIFICATION=dev" >> $GITHUB_ENV
+          echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          echo "HOST=${{ env.HOST_DEV }}" >> $GITHUB_ENV
+          echo "FRONTEND_URL=${{ env.FRONTEND_URL_DEV }}" >> $GITHUB_ENV
+          echo "API_URL=${{ env.API_URL_DEV }}" >> $GITHUB_ENV
+
+      - name: Echo environment variables
+        run: env
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Build and push with Docker Compose
+        run: |
+          docker compose build
+          docker compose push
+
+      - name: Configure kubectl
+        run: |
+          mkdir $PWD/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $PWD/.kube/config
+          echo "KUBECONFIG=$PWD/.kube/config" >> $GITHUB_ENV
+
+      - name: Get nodes
+        run: kubectl get nodes
+
+      - name: Setup Skaffold
+        run: |
+          wget https://storage.googleapis.com/skaffold/releases/${VERSION}/${BINARY} -O ./skaffold
+          chmod +x ./skaffold
+        env:
+          VERSION: v2.6.0
+          BINARY: skaffold-linux-amd64
+
+      - name: Run Skaffold
+        run: ./skaffold deploy --images ${{ env.IMAGE_NAME }}:$IMAGE_TAG
+
+      - name: Show pods
+        run: kubectl get pods --all-namespaces
