@@ -83,6 +83,9 @@ jobs:
           docker compose build
           docker compose push
 
+      - name: Helm chart dependency update
+        run: helm dependency update ${{ env.SKAFFOLD_CHART }}
+
       - name: Configure kubectl
         run: |
           mkdir $PWD/.kube
