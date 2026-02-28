@@ -29,10 +29,7 @@ deploy:
 
 profiles:
   - name: always-pull
-    deploy:
-      helm:
-        releases:
-          - name: rutineret
-            setValueTemplates:
-              image:
-                pullPolicy: Always
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/setValueTemplates/image.pullPolicy
+        value: "Always"
