@@ -75,6 +75,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: ${POSTGRES_HOST}
 
+  test:
+    build: .
+    command: sh -c "uv pip install --system pytest pytest-django pytest-cov && python -m pytest"
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: api.settings.test
+    working_dir: /app
+
   postgres:
     image: postgres:17
     environment:

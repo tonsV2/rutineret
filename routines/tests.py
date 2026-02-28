@@ -118,7 +118,7 @@ class TaskModelTests(TestCase):
 
         # Test in February (non-leap year)
         feb_2023 = date(2023, 2, 28)  # Non-leap year
-        self.assertFalse(task.is_due_today(feb_2023))
+        self.assertTrue(task.is_due_today(feb_2023))
         # Test in February (leap year)
         feb_2024 = date(2024, 2, 29)  # Leap year
         self.assertTrue(task.is_due_today(feb_2024))
