@@ -83,9 +83,21 @@ jobs:
           docker compose build
           docker compose push
 
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+        env:
+          VERSION: v4.35.1
+          BINARY: yq_linux_amd64
+
       - name: Add Helm repositories
         run: |
-          helm repo add valkey https://valkey.io/valkey-helm
+          for line in $(yq -r '.dependencies[] | "\(.name) \(.repository)"' charts/rutineret/Chart.yaml); do
+            name=$(echo $line | cut -d' ' -f1)
+            url=$(echo $line | cut -d' ' -f2-)
+            helm repo add $name $url
+          done
           helm repo update
 
       - name: Helm chart dependency update
