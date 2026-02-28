@@ -120,7 +120,7 @@ jobs:
           BINARY: skaffold-linux-amd64
 
       - name: Run Skaffold
-        run: ./skaffold deploy --images ${{ env.IMAGE_NAME }}:$IMAGE_TAG --set image.pullPolicy=Always
+        run: ./skaffold deploy --images ${{ env.IMAGE_NAME }}:$IMAGE_TAG -p always-pull
 
       - name: Show pods
         run: kubectl get pods --all-namespaces

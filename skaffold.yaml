@@ -26,3 +26,13 @@ deploy:
                 paths:
                   - path: /
                     pathType: ImplementationSpecific
+
+profiles:
+  - name: always-pull
+    deploy:
+      helm:
+        releases:
+          - name: rutineret
+            setValueTemplates:
+              image:
+                pullPolicy: Always
