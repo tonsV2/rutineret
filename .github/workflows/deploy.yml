@@ -93,9 +93,7 @@ jobs:
 
       - name: Add Helm repositories
         run: |
-          for line in $(yq -r '.dependencies[] | .name + " " + .repository' charts/rutineret/Chart.yaml); do
-            name=$(echo $line | cut -d' ' -f1)
-            url=$(echo $line | cut -d' ' -f2-)
+          yq -r '.dependencies[] | .name + " " + .repository' charts/rutineret/Chart.yaml | while read -r name url; do
             helm repo add $name $url
           done
           helm repo update
