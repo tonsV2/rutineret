@@ -97,7 +97,7 @@ jobs:
           wget https://storage.googleapis.com/skaffold/releases/${VERSION}/${BINARY} -O ./skaffold
           chmod +x ./skaffold
         env:
-          VERSION: v2.6.0
+          VERSION: v2.17.2
           BINARY: skaffold-linux-amd64
 
       - name: Run Skaffold
