@@ -83,6 +83,11 @@ jobs:
           docker compose build
           docker compose push
 
+      - name: Add Helm repositories
+        run: |
+          helm repo add valkey https://valkey.io/valkey-helm
+          helm repo update
+
       - name: Helm chart dependency update
         run: helm dependency update ${{ env.SKAFFOLD_CHART }}
 
